@@ -8,7 +8,8 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <unistd.h>
-#include <pthread.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #define PORT 6969
 #define BUFFERLEN 1024
@@ -37,23 +38,10 @@ void listen_on(int sockfd, int n) {
 uint64_t min(uint64_t m, uint64_t n) {
     return m > n ? n : m;
 }
-
-void* serve_request(void* args) {
-    int new_socket = *((int*)args);
-    char buffer[BUFFERLEN] = {0};
-    uint64_t request;
-
-    read(new_socket, buffer, BUFFERLEN);
-    printf("Received: %s\n", buffer);
-    request = (uint64_t) atoll(buffer);
-    uint64_t* table = factorial();
-    sprintf(buffer, "%lu", table[min(20, request)]);
-    send(new_socket, buffer, strlen(buffer), 0);
-    close(new_socket);
-    free(table);
-
-    return NULL;
+void sigchild_handler() {
+    while (waitpid(-1, NULL, WNOHANG));
 }
+
 
 int main() {
     int serverfd, new_socket;
@@ -76,15 +64,43 @@ int main() {
     printf("Server listening on port %d.\n", PORT);
 
     size_t addr_len = sizeof(server_addr);
+//    struct sigaction sa;
+//    sa.sa_restorer = sigchild_handler;
+//    sigemptyset(&sa.sa_mask);
+//    sa.sa_flags = SA_RESTART;
+//    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+//        perror("Signal Action Failed!");
+//        exit(EXIT_FAILURE);
+//    }
+
     while (1) {
         if ((new_socket = accept(serverfd, (struct sockaddr*)&server_addr, (socklen_t*)&addr_len)) < 0) {
             perror("Accept Failed!");
-        }
-        pthread_t thread;
-        if (pthread_create(&thread, NULL, serve_request, (void*)&new_socket) < 0) {
-            perror("Thread Creation Failed!");
             exit(EXIT_FAILURE);
         }
+
+        int pid = fork();
+        if (pid < 0) {
+            perror("Fork Failed!\n");
+            exit(EXIT_FAILURE);
+        }
+        if (pid == 0) {
+            close(serverfd);
+
+            read(new_socket, buffer, BUFFERLEN);
+            printf("Received: %s\n", buffer);
+
+            uint64_t request = (uint64_t) atoll(buffer);
+            uint64_t* table = factorial();
+            sprintf(buffer, "%lu", table[min(20, request)]);
+            send(new_socket, buffer, strlen(buffer), 0);
+            close(new_socket);
+            free(table);
+            exit(EXIT_SUCCESS);
+        } else {
+            close(new_socket);
+        }
+
         printf("\nHiTmAn bAnG\n");
     }
     return 0;
