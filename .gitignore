@@ -1,2 +1,4 @@
 /build
 /final_rev2
+/cmake-build-debug
+main.c

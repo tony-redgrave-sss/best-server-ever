@@ -81,7 +81,7 @@ int main() {
 
         int pid = fork();
         if (pid < 0) {
-            perror("Fork Failed!\n");
+            perror("Fork Failed!");
             exit(EXIT_FAILURE);
         }
         if (pid == 0) {
