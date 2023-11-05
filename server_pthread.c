@@ -11,35 +11,13 @@
 #include <pthread.h>
 #include <signal.h>
 
+#include "lib/factorial.h"
+#include "lib/server.h"
+
 #define PORT 42069
 #define BUFFERLEN 1024
 
 int count = 0;
-
-uint64_t* factorial() {
-    uint64_t* table = (uint64_t*) malloc(sizeof(uint64_t) * 21);
-    table[0] = 1;
-    for (int i = 1; i < 21; ++i) {
-        table[i] = i * table[i - 1];
-    }
-    return table;
-}
-int create_socket() {
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd < 0) {
-        perror("Socket Creation Failed!");
-        exit(EXIT_FAILURE);
-    }
-}
-void listen_on(int sockfd, int n) {
-    if ((listen(sockfd, 5)) < 0) {
-        perror("Listen Failed!");
-        exit(EXIT_FAILURE);
-    }
-}
-uint64_t min(uint64_t m, uint64_t n) {
-    return m > n ? n : m;
-}
 
 void* serve_request(void* args) {
     printf("Hello There. You are visitor number %d\n", (count++) + 1);
@@ -49,13 +27,10 @@ void* serve_request(void* args) {
 
     read(new_socket, buffer, BUFFERLEN);
     request = (uint64_t) atoll(buffer);
-    uint64_t* table = factorial();
-    sprintf(buffer, "%lu", table[min(20, request)]);
-    //printf("Sending: %lu\n", table[(min(20, request))]);
+
+    sprintf(buffer, "%lu", factorial(request));
     send(new_socket, buffer, strlen(buffer), 0);
     close(new_socket);
-
-    free(table);
 
     return NULL;
 }

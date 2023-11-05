@@ -9,5 +9,4 @@ add_executable(Server_select server_select.c ${LIBS})
 add_executable(Server_poll server_poll.c ${LIBS})
 add_executable(Server_epoll server_epoll.c ${LIBS})
 
-add_executable(yeet main.c
-        main.c)
+add_executable(yeet main.c ${LIBS})
