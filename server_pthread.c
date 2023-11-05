@@ -2,21 +2,16 @@
 // Created by dante on 4/11/23.
 //
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
+#include "lib/server.h"
+#include "lib/factorial.h"
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <signal.h>
 
-#include "lib/factorial.h"
-#include "lib/server.h"
-
-#define PORT 42069
+#define PORT 6969
 #define BUFFERLEN 1024
 
+// Just a global variable to see the count of people joining in.
 int count = 0;
 
 void* serve_request(void* args) {
@@ -28,7 +23,9 @@ void* serve_request(void* args) {
     read(new_socket, buffer, BUFFERLEN);
     request = (uint64_t) atoll(buffer);
 
+    printf("Received %s. ", buffer);
     sprintf(buffer, "%lu", factorial(request));
+    printf("Sending %s.\n", buffer);
     send(new_socket, buffer, strlen(buffer), 0);
     close(new_socket);
 
@@ -36,35 +33,27 @@ void* serve_request(void* args) {
 }
 
 int main() {
-    signal(SIGPIPE, SIG_IGN);
-    int serverfd, new_socket;
-    struct sockaddr_in server_addr;
+    // bunch of code to get details from server init
+    struct server_result result = create_server(PORT);
+    struct sockaddr_in* server_addr = result.server_addr;
+    int server_fd = result.server_fd;
+    size_t addr_len = sizeof (*(server_addr));
 
-    serverfd = create_socket();
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(PORT);
-
-    if ((bind(serverfd, (struct sockaddr*)&server_addr, sizeof(server_addr))) < 0) {
-        perror("Bind Failed!");
-        exit(EXIT_FAILURE);
-    }
-
-    listen_on(serverfd, 5);
-    printf("Server listening on port %d.\n", PORT);
-
-    size_t addr_len = sizeof(server_addr);
+    printf("We are waiting for you on port %d.\n", PORT);
+    int new_socket;
     while (1) {
-        if ((new_socket = accept(serverfd, (struct sockaddr*)&server_addr, (socklen_t*)&addr_len)) < 0) {
+        if ((new_socket = accept(server_fd, (struct sockaddr*)&server_addr, (socklen_t*)&addr_len)) < 0) {
             perror("Accept Failed!");
+            break;
         }
         pthread_t thread;
         if (pthread_create(&thread, NULL, serve_request, (void*)&new_socket) < 0) {
             perror("Thread Creation Failed!");
-            exit(EXIT_FAILURE);
+            break;
         }
-        // yeet
+        // The thread embarks on its journey.
     }
-    return 0;
+
+    // It only reached here if the server failed, but hey. There's already enough EXIT_FAILURES in the code.
+    return EXIT_SUCCESS;
 }

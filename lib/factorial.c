@@ -4,9 +4,9 @@
 
 #include "factorial.h"
 
-uint64_t factorial(int n) {
+uint64_t factorial(uint64_t n) {
     uint64_t result = 1;
-    for (int i = 1; i <= min(n, 20); ++i) {
+    for (uint64_t i = 1; i <= min(n, 20); ++i) {
         result = result * i;
     }
     return result;

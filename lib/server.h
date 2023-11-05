@@ -10,11 +10,18 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
+struct server_result {
+    int server_fd;
+    struct sockaddr_in* server_addr;
+};
+
 int create_socket();
 int listen_on(int sockfd, int n);
 struct sockaddr_in* create_sockaddr(uint16_t port);
 void bind_socket(int server_fd, struct sockaddr* server_addr);
-int create_server(uint16_t port);
+struct server_result create_server(uint16_t port);
+
+
 
 
 #endif //BEST_SERVER_EVER_SERVER_H

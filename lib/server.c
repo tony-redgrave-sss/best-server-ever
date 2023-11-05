@@ -48,7 +48,7 @@ void socket_option(int sockfd, char* opt) {
 
 /**Returns the file descriptor for the server.
  */
-int create_server(uint16_t port) {
+struct server_result create_server(uint16_t port) {
     char opt = 1;
     int serverfd = create_socket();
     struct sockaddr_in* server_addr = create_sockaddr(port);
@@ -56,7 +56,11 @@ int create_server(uint16_t port) {
     bind_socket(serverfd, (struct sockaddr*)server_addr);
     listen_on(serverfd, 5);
 
-    return serverfd;
+    struct server_result result;
+    result.server_fd = serverfd;
+    result.server_addr = server_addr;
+
+    return result;
 }
 
 
