@@ -12,6 +12,8 @@
 #define PORT 6969
 #define BUFFERLEN 1024
 
+int count = 0;
+
 int main() {
     signal(SIGPIPE, SIG_IGN);
 
@@ -43,6 +45,7 @@ int main() {
             if (new_socket > set_max)
                 set_max = new_socket;
         }
+        printf("Hello, visitor number %d\n", count++);
         long val_read;
         int current_fd;
         char buffer[BUFFERLEN];
