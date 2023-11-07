@@ -1,7 +1,7 @@
 # best-server-ever
 The best factorial calculating server ever.
 
-#### Shit Happens
+#### Difficulties Happen
 Pthread was easy to make, but forks are such a shit concept
 and are in general, very unwieldy. My signal handler got a 
 SIGSEGV, lol.
@@ -10,11 +10,11 @@ SIGSEGV, lol.
 Just move the server and the factorial code to use header files.
 Now this is based.
 
-#### Select Breaks An Infinite Loop
+#### Mistakes were made.
 Go off, queen. Maybe ignoring SIGPIPE isn't the best idea people
 have had in a while.        
 Update: It was me. I put a return statement in the infinite loop.
-I have fucked up so hard lol.
+I have messed up so hard lol.
 
 ## Anyways
 To redo this project,
