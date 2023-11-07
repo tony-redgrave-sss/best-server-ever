@@ -6,9 +6,12 @@
 #include <sys/epoll.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
+#include "lib/factorial.h"
 
 #define PORT 6969
 #define MAX_EVENTS 4000
+#define BUFFERLEN 1024
 
 int non_block(int server_fd) {
     int old_flags, new_flags;
@@ -64,10 +67,41 @@ int main() {
                 continue;
             } else if (server_fd == events[i].data.fd) {
                 // accept conn, add to epoll
+                struct epoll_event new_event;
+                new_event.data.fd = events[i].data.fd;
+                new_event.events = EPOLLIN;
+                if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, events[i].data.fd, &new_event) == -1) {
+                    perror("epoll_ctl failed!");
+                    exit(EXIT_FAILURE);
+                }
             } else {
+                char buffer[BUFFERLEN];
+                memset(buffer, '\0', sizeof(buffer));
+                int done = 0;
+                ssize_t count = read(events[i].data.fd, buffer, sizeof(buffer));
+                if (count == -1) {
+                    done = 1;
+                    break;
+                } else if (count == 0) {
+                    done = 1;
+                    break;
+                }
 
+                int request = atoi(buffer);
+                sprintf(buffer, "%lu", factorial(request));
+                count = write(events[i].data.fd, buffer, strlen(buffer));
+                if (count == -1) {
+                    perror("Write Failed!");
+                    exit(EXIT_FAILURE);
+                }
+
+                if (done) {
+                    printf("Closing descriptor %d\n", events[i].data.fd);
+                    close(events[i].data.fd);
+                }
             }
-
         }
     }
+    close(server_fd);
+    return EXIT_SUCCESS;
 }
