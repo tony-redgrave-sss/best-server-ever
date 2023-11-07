@@ -12,4 +12,6 @@ Now this is based.
 
 ## Select Breaks An Infinite Loop
 Go off, queen. Maybe ignoring SIGPIPE isn't the best idea people
-have had in a while.
+have had in a while.        
+Update: It was me. I put a return statement in the infinite loop.
+I have fucked up so hard lol.

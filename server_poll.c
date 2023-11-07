@@ -8,10 +8,9 @@
 #include <poll.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
 
 #define PORT 6969
-#define MAX_FDS 4000
+#define MAX_CLIENTS 4000
 #define BUFFER_LEN 1024
 
 int non_block(int server_fd) {
@@ -40,63 +39,49 @@ int main() {
     size_t addr_len = sizeof (*(server_addr));
     printf("We are waiting for you on port %d.\n", PORT);
 
-    struct pollfd fds[MAX_FDS];
-    memset(fds, 0, sizeof(fds));
-    fds[0].fd = server_fd;
-    fds[0].events = POLLIN;
-    int n_fds = 1;
+    struct pollfd client[MAX_CLIENTS];
+    client[0].fd = server_fd;
+    client[0].events = POLLRDNORM;
+    for (int i = 1; i < MAX_CLIENTS; i++)
+        client[i].fd = -1;
+
+    char buffer[BUFFER_LEN];
     while (1) {
-        int n = poll(fds, MAX_FDS, -1);
-        // inner loop
-        for (int i = 0; i < n; ++i) {
-            struct pollfd current = fds[i];
-            if (current.revents == POLLIN) {
-                if (server_fd == current.fd) {
-                    // new connection! Accept and add socket to fds array
-                    struct sockaddr_storage client_addr;
-                    socklen_t address_len = sizeof(client_addr);
-                    int new_conn_fd = accept(server_fd, (struct sockaddr*)&client_addr, &address_len);
-                    if (new_conn_fd == -1) {
-                        perror("Accept Failed!");
-                    } else {
-                        if (non_block(new_conn_fd) == -1) {
-                            perror("Socket Non-Blocking Failed!");
-                            close(new_conn_fd);
-                        } else {
-                            fds[n_fds].fd = new_conn_fd;
-                            fds[n_fds++].events = POLLIN;
-                        }
-                    }
-                } else {
-                    // data waiting to be read! process and send
-                    if (current.revents == POLLIN) {
-                        char buffer[BUFFER_LEN];
-                        memset(buffer, '\0', sizeof(buffer));
-                        int done = 0;
-                        ssize_t count = read(current.fd, buffer, sizeof(buffer));
-                        if (count == -1) {
-                            if (errno != EAGAIN) {
-                                perror("Read Error!");
-                                done = 1;
-                            }
-                            break;
-                        } else if (count == 0) {
-                            done = 1;
-                            break;
-                        }
-                        int request = atoi(buffer);
-                        sprintf(buffer, "%lu", factorial(request));
-                        count = write(current.fd, buffer, strlen(buffer));
-                        if (count == -1) {
-                            perror("Write Error!");
-                            exit(EXIT_FAILURE);
-                        }
-                        if (done) {
-                            printf("Connection closed lol %d\n", current.fd);
-                            close(current.fd);
-                        }
-                    }
+        int nready = poll(client, MAX_CLIENTS, -1);
+        if (client[0].revents & POLLRDNORM) {
+            int conn_fd = accept(server_fd, (struct sockaddr*)NULL, NULL);
+            int i;
+            for (i = 1; i < MAX_CLIENTS; i++) {
+                if (client[i].fd < 0) {
+                    client[i].fd = conn_fd;
+                    break;
                 }
+            }
+            client[i].events = POLLRDNORM;
+            if (--nready <= 0)
+                continue;
+        }
+
+        for (int i = 1; i < MAX_CLIENTS; i++) {
+            int sockfd;
+            if ((sockfd = client[i].fd) < 0)
+                continue;
+            if (client[i].revents & (POLLRDNORM | POLLERR)) {
+                int n = read(sockfd, buffer, BUFFER_LEN);
+                if (n < 0) {
+                    close(sockfd);
+                    client[i].fd = -1;
+                } else if (n == 0) {
+                    close(sockfd);
+                    client[i].fd = -1;
+                } else {
+                    int num = atoi(buffer);
+                    unsigned long fact = factorial(num);
+                    sprintf(buffer, "%lu", fact);
+                    write(sockfd, buffer, strlen(buffer));
+                }
+                if (--nready <= 0)
+                    break;
             }
         }
     }
