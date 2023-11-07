@@ -9,7 +9,7 @@
 #include <poll.h>
 
 #define MAX_CLIENTS 10
-#define BUFFER_SIZE 1024
+#define BUFFER_LEN 1024
 #define PORT 6969
 
 int main() {
@@ -24,7 +24,7 @@ int main() {
         client[i].fd = -1;
     }
 
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_LEN];
     while (1) {
         int next = poll(client, MAX_CLIENTS, -1);
         if (client[0].revents & POLLRDNORM) {
@@ -46,7 +46,7 @@ int main() {
             if ((sockfd = client[i].fd) < 0)
                 continue;
             if (client[i].revents & (POLLRDNORM | POLLERR)) {
-                int bytes_read = read(sockfd, buffer, BUFFER_SIZE);
+                int bytes_read = read(sockfd, buffer, BUFFER_LEN);
                 // I read nothing, or you're lying to me about being open. I swear.
                 if (bytes_read <= 0) {
                     close(sockfd);
